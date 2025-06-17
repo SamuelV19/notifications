@@ -1,129 +1,148 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Recordatorio de Llamadas</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;500;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --primary: #ff5722; /* fuego */
-      --accent: #ffd700; /* dorado */
-      --bg: #1c1c1c;     /* negro profundo */
-      --text: #ffffff;   /* blanco */
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Roboto', sans-serif;
-    }
-
-    body {
-      background-color: var(--bg);
-      color: var(--text);
-      padding: 2rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      text-align: center;
-    }
-
-    h1 {
-      color: var(--primary);
-      font-size: 2.2rem;
-      margin-bottom: 1rem;
-    }
-
-    p {
-      font-size: 1.1rem;
-      margin-bottom: 2rem;
-    }
-
-    input[type="time"] {
-      padding: 0.5rem;
-      font-size: 1rem;
-      border-radius: 8px;
-      border: 2px solid var(--accent);
-      background-color: #333;
-      color: white;
-      margin-bottom: 1.5rem;
-    }
-
-    button {
-      background-color: var(--primary);
-      color: white;
-      padding: 0.8rem 1.5rem;
-      border: none;
-      border-radius: 12px;
-      font-size: 1rem;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-
-    button:hover {
-      background-color: #e64a19;
-    }
-
-    .message {
-      margin-top: 1rem;
-      font-size: 0.95rem;
-      color: var(--accent);
-    }
-  </style>
-</head>
-<body>
-  <h1>🔥 Recordatorio de Llamadas</h1>
-  <p>Selecciona la hora a la que quieres que te recordemos hacer tus llamadas ministeriales hoy:</p>
-
-  <input type="time" id="hora" required />
-  <br />
-  <button onclick="programarNotificacion()">Programar Recordatorio</button>
-
-  <div class="message" id="mensaje"></div>
-
-  <script>
-    function programarNotificacion() {
-      const horaInput = document.getElementById('hora');
-      const mensaje = document.getElementById('mensaje');
-      const horaSeleccionada = horaInput.value;
-
-      if (!horaSeleccionada) {
-        mensaje.textContent = "⏰ Por favor, selecciona una hora válida.";
-        return;
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Recordatorio de Llamadas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;500;700&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --primary: #ff5722;
+        --accent: #ffd700;
+        --bg: #1c1c1c;
+        --text: #ffffff;
       }
 
-      Notification.requestPermission().then(permiso => {
-        if (permiso !== "granted") {
-          mensaje.textContent = "🔕 No se concedieron permisos para notificaciones.";
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Roboto', sans-serif;
+      }
+
+      body {
+        background-color: var(--bg);
+        color: var(--text);
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        text-align: center;
+      }
+
+      h1 {
+        color: var(--primary);
+        font-size: 2.2rem;
+        margin-bottom: 1rem;
+      }
+
+      p {
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+      }
+
+      input[type="time"] {
+        padding: 0.5rem;
+        font-size: 1rem;
+        border-radius: 8px;
+        border: 2px solid var(--accent);
+        background-color: #333;
+        color: white;
+        margin-bottom: 1.5rem;
+      }
+
+      button {
+        background-color: var(--primary);
+        color: white;
+        padding: 0.8rem 1.5rem;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+
+      button:hover {
+        background-color: #e64a19;
+      }
+
+      .message {
+        margin-top: 1rem;
+        font-size: 0.95rem;
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔥 Recordatorio de Llamadas</h1>
+    <p>Selecciona la hora a la que quieres que te recordemos hacer tus llamadas ministeriales hoy:</p>
+
+    <input type="time" id="hora" required />
+    <br />
+    <button onclick="programarRecordatorio()">Activar Recordatorio Push</button>
+
+    <div class="message" id="mensaje"></div>
+
+    <!-- Firebase SDK + lógica -->
+    <script type="module">
+      import { solicitarPermisoNotificacion } from './firebase-config.js';
+
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("firebase-messaging-sw.js")
+          .then(reg => {
+            console.log("✅ Service Worker registrado:", reg.scope);
+          })
+          .catch(err => {
+            console.error("❌ Error al registrar Service Worker:", err);
+          });
+      }
+
+      async function programarRecordatorio() {
+        const horaInput = document.getElementById("hora");
+        const mensaje = document.getElementById("mensaje");
+        const horaSeleccionada = horaInput.value;
+
+        if (!horaSeleccionada) {
+          mensaje.textContent = "⏰ Por favor, selecciona una hora válida.";
           return;
         }
 
-        const ahora = new Date();
-        const [hora, minuto] = horaSeleccionada.split(":").map(Number);
-        const objetivo = new Date();
-        objetivo.setHours(hora, minuto, 0, 0);
-
-        if (objetivo <= ahora) {
-          objetivo.setDate(objetivo.getDate() + 1);
+        const token = await solicitarPermisoNotificacion();
+        if (!token) {
+          mensaje.textContent = "❌ No se pudo obtener el token para notificaciones.";
+          return;
         }
 
-        const msHastaNotificacion = objetivo - ahora;
+        // Convertir hora seleccionada (HH:mm) a Date con fecha actual
+        const ahora = new Date();
+        const [horas, minutos] = horaSeleccionada.split(":");
+        ahora.setHours(horas);
+        ahora.setMinutes(minutos);
+        ahora.setSeconds(0);
+        ahora.setMilliseconds(0);
 
-        setTimeout(() => {
-          new Notification("📞 ¡Es hora de hacer tus llamadas ministeriales!", {
-            body: "Ora, contacta y anima a tu grupo. Tú puedes. 💪🔥",
-            icon: "https://cdn-icons-png.flaticon.com/512/1828/1828884.png"
-          });
-        }, msHastaNotificacion);
+        const iso = ahora.toISOString();
 
-        mensaje.textContent = `✅ Notificación programada para las ${horaSeleccionada}.`;
-      });
-    }
-  </script>
-</body>
+        // Enviar al backend
+        const res = await fetch("https://us-central1-notifications-34034.cloudfunctions.net/addRecordatorio", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token,
+            scheduledTime: iso,
+            mensaje: "📞 ¡Es hora de tus llamadas ministeriales!"
+          })
+        });
+
+        if (res.ok) {
+          mensaje.textContent = `✅ Te notificaremos hoy a las ${horaSeleccionada}.`;
+        } else {
+          mensaje.textContent = "❌ No se pudo programar el recordatorio.";
+        }
+      }
+    </script>
+  </body>
 </html>
