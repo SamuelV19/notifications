@@ -1,53 +1,19 @@
-// functions/index.js
-const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onRequest } = require("firebase-functions/v2/https");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
+const express = require("express");
+const cors = require("cors");
 
 admin.initializeApp();
 const db = admin.firestore();
 
-// ✅ Función programada que corre cada minuto
-exports.sendScheduledNotifications = onSchedule(
-  {
-    schedule: "* * * * *",
-    timeZone: "America/Bogota",
-  },
-  async (event) => {
-    const now = admin.firestore.Timestamp.now();
+// Express app para manejar CORS correctamente
+const app = express();
+app.use(cors({ origin: true }));
+app.use(express.json());
 
-    const pendientes = await db
-      .collection("recordatorios")
-      .where("scheduledTime", "<=", now)
-      .where("sent", "==", false)
-      .get();
-
-    if (pendientes.empty) {
-      console.log("⏳ No hay notificaciones por enviar.");
-      return;
-    }
-
-    const batch = db.batch();
-
-    pendientes.forEach((doc) => {
-      const data = doc.data();
-      const payload = {
-        notification: {
-          title: "📞 Recordatorio",
-          body: data.mensaje || "Es hora de hacer tus llamadas ministeriales 🙏🔥",
-        },
-      };
-
-      admin.messaging().sendToDevice(data.token, payload);
-      batch.update(doc.ref, { sent: true });
-    });
-
-    await batch.commit();
-    console.log(`✅ Enviadas ${pendientes.size} notificaciones.`);
-  }
-);
-
-// ✅ Endpoint HTTP para registrar recordatorios desde frontend
-exports.addRecordatorio = onRequest(async (req, res) => {
+// 🔥 Endpoint HTTP para registrar recordatorios
+app.post("/addRecordatorio", async (req, res) => {
   try {
     const { token, scheduledTime, mensaje } = req.body;
 
@@ -68,3 +34,52 @@ exports.addRecordatorio = onRequest(async (req, res) => {
     return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
+
+// 🔄 Ejecutar cada minuto: envía notificaciones pendientes
+exports.sendScheduledNotifications = onSchedule(
+  {
+    schedule: "* * * * *",
+    timeZone: "America/Bogota",
+  },
+  async () => {
+    const now = admin.firestore.Timestamp.now();
+
+    const pendientes = await db
+      .collection("recordatorios")
+      .where("scheduledTime", "<=", now)
+      .where("sent", "==", false)
+      .get();
+
+    if (pendientes.empty) {
+      console.log("⏳ No hay notificaciones pendientes.");
+      return;
+    }
+
+    const batch = db.batch();
+
+    for (const doc of pendientes.docs) {
+      const data = doc.data();
+
+      const payload = {
+        notification: {
+          title: "📞 Recordatorio",
+          body: data.mensaje || "Es hora de hacer tus llamadas ministeriales 🙏🔥",
+        },
+      };
+
+      try {
+        await admin.messaging().sendToDevice(data.token, payload);
+        batch.update(doc.ref, { sent: true });
+        console.log("✅ Enviada notificación a:", data.token);
+      } catch (err) {
+        console.error("❌ Error enviando notificación:", err);
+      }
+    }
+
+    await batch.commit();
+    console.log(`✅ Notificaciones enviadas: ${pendientes.size}`);
+  }
+);
+
+// Exponer la app Express con CORS habilitado
+exports.api = onRequest(app);

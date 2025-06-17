@@ -82,7 +82,7 @@
 
     <input type="time" id="hora" required />
     <br />
-    <button onclick="programarRecordatorio()">Activar Recordatorio Push</button>
+    <button onclick="programarRecordatorio()">Activar Recordatorio</button>
 
     <div class="message" id="mensaje"></div>
 
@@ -143,6 +143,7 @@
           mensaje.textContent = "❌ No se pudo programar el recordatorio.";
         }
       }
+      window.programarRecordatorio = programarRecordatorio; 
     </script>
   </body>
 </html>

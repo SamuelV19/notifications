@@ -1,6 +1,6 @@
 // firebase-config.js
-import { initializeApp } from "firebase/app";
-import { getMessaging, getToken, onMessage } from "firebase/messaging";
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCCQCLViZj3r55Na7suZFjJwFgwWzl-YZo",
@@ -44,5 +44,4 @@ export const solicitarPermisoNotificacion = async () => {
 // Escucha notificaciones mientras la app está abierta
 onMessage(messaging, payload => {
   console.log("📥 Notificación recibida:", payload);
-  // Puedes mostrar notificación personalizada si deseas
 });
